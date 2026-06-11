@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="no">
+<head>
+<meta charset="UTF-8">
+<title>Logg inn</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: sans-serif; background: #f0f0f0; display: flex; align-items: center; justify-content: center; height: 100vh; }
+  .box { background: #fff; border: 1px solid #ccc; padding: 32px; width: 320px; }
+  h1 { font-size: 1.1rem; margin-bottom: 20px; }
+  label { display: block; font-size: .85rem; margin-bottom: 4px; color: #444; }
+  input { width: 100%; padding: 8px; border: 1px solid #ccc; margin-bottom: 14px; font-size: .9rem; }
+  button { width: 100%; padding: 9px; background: #222; color: #fff; border: none; font-size: .9rem; cursor: pointer; }
+  button:hover { background: #000; }
+  .error { color: #c00; font-size: .82rem; margin-top: 8px; display: none; }
+  .hint { margin-top: 14px; font-size: .78rem; color: #888; border-top: 1px solid #eee; padding-top: 10px; }
+</style>
+</head>
+<body>
+<div class="box">
+  <h1>DataKonsulent.no</h1>
+  <label>Brukernavn</label>
+  <input id="u" type="text" onkeydown="if(event.key==='Enter')login()">
+  <label>Passord</label>
+  <input id="p" type="password" onkeydown="if(event.key==='Enter')login()">
+  <button onclick="login()">Logg inn</button>
+  <div class="error" id="err">Feil brukernavn eller passord</div>
+  <div class="hint">admin / Admin123! &nbsp;·&nbsp; konsulent / Pass123!</div>
+</div>
+<script>
+async function login() {
+  const res = await fetch('/api/login', {
+    method: 'POST', headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({ username: document.getElementById('u').value, password: document.getElementById('p').value })
+  });
+  if (res.ok) location.href = '/app.html';
+  else document.getElementById('err').style.display = 'block';
+}
+</script>
+</body>
+</html>

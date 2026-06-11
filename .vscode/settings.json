@@ -1,0 +1,36 @@
+{
+    "sqltools.connections": [
+        {
+            "ssh": "Disabled",
+            "previewLimit": 50,
+            "server": "10.10.10.4",
+            "port": 5432,
+            "driver": "PostgreSQL",
+            "name": "test",
+            "database": "datakonsulent",
+            "username": "postgres"
+        },
+        {
+            "ssh": "Disabled",
+            "previewLimit": 50,
+            "server": "10.10.10.4",
+            "port": 5432,
+            "driver": "PostgreSQL",
+            "name": "eksamen",
+            "database": "datakonsulent",
+            "username": "postgres",
+            "password": "Ikke188122"
+        },
+        {
+            "ssh": "Disabled",
+            "previewLimit": 50,
+            "server": "10.10.10.4",
+            "port": 5432,
+            "driver": "PostgreSQL",
+            "name": "database eksamen",
+            "database": "datakonsulent1",
+            "username": "postgres",
+            "password": "Sigma"
+        }
+    ]
+}

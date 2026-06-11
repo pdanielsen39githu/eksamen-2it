@@ -1,0 +1,486 @@
+<!DOCTYPE html>
+<html lang="no">
+<head>
+<meta charset="UTF-8">
+<title>DataKonsulent.no</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: sans-serif; background: #f0f0f0; color: #111; font-size: .9rem; }
+
+  nav { background: #222; color: #fff; display: flex; gap: 4px; align-items: center; padding: 0 16px; height: 44px; }
+  nav span { font-weight: bold; margin-right: 12px; }
+  nav a { color: #ccc; text-decoration: none; padding: 4px 10px; cursor: pointer; }
+  nav a:hover, nav a.active { background: #444; color: #fff; }
+  nav .right { margin-left: auto; display: flex; gap: 8px; align-items: center; }
+  nav .right small { color: #aaa; }
+  nav button { background: #444; color: #ccc; border: none; padding: 4px 10px; cursor: pointer; }
+  nav button:hover { background: #555; }
+
+  .page { display: none; padding: 20px; max-width: 1000px; margin: 0 auto; }
+  .page.active { display: block; }
+
+  .toolbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+  h2 { font-size: 1rem; }
+
+  table { width: 100%; border-collapse: collapse; background: #fff; border: 1px solid #ddd; }
+  th { background: #eee; padding: 8px 10px; text-align: left; font-size: .82rem; border-bottom: 1px solid #ddd; }
+  td { padding: 8px 10px; border-bottom: 1px solid #eee; vertical-align: top; }
+  tr:last-child td { border-bottom: none; }
+  tr:hover td { background: #fafafa; }
+
+  .chip { display: inline-block; background: #eee; border: 1px solid #ccc; border-radius: 3px; padding: 0 6px; font-size: .75rem; margin: 1px; }
+
+  button { padding: 5px 12px; border: 1px solid #aaa; background: #fff; cursor: pointer; font-size: .82rem; }
+  button:hover { background: #eee; }
+  button.dark { background: #222; color: #fff; border-color: #222; }
+  button.dark:hover { background: #000; }
+  button.sm { padding: 3px 8px; font-size: .78rem; }
+
+  .stats { display: flex; gap: 12px; margin-bottom: 16px; }
+  .stat { background: #fff; border: 1px solid #ddd; padding: 14px 20px; flex: 1; }
+  .stat .n { font-size: 1.6rem; font-weight: bold; }
+  .stat .l { font-size: .78rem; color: #666; }
+
+  .modal-bg { display: none; position: fixed; inset: 0; background: #0004; z-index: 10; align-items: center; justify-content: center; }
+  .modal-bg.open { display: flex; }
+  .modal { background: #fff; border: 1px solid #ccc; padding: 24px; width: 400px; max-width: 95vw; }
+  .modal h3 { margin-bottom: 16px; font-size: .95rem; }
+  .modal label { display: block; font-size: .8rem; color: #555; margin: 8px 0 3px; }
+  .modal input, .modal select { width: 100%; padding: 6px 8px; border: 1px solid #ccc; font-size: .88rem; }
+  .modal-actions { margin-top: 16px; display: flex; gap: 8px; justify-content: flex-end; }
+
+  .note { background: #fff; border: 1px solid #ddd; padding: 12px 16px; margin-bottom: 14px; font-size: .85rem; color: #444; }
+</style>
+</head>
+<body>
+
+<nav>
+  <span>DataKonsulent</span>
+  <a onclick="show('hjem')"      id="nav-hjem"      class="active">Hjem</a>
+  <a onclick="show('bedrifter')" id="nav-bedrifter">Bedrifter</a>
+  <a onclick="show('tjenester')" id="nav-tjenester">Tjenester</a>
+  <a onclick="show('kontakter')" id="nav-kontakter">Kontakter</a>
+  <a onclick="show('mine-tjenester')" id="nav-mine-tjenester" style="display:none">Mine tjenester</a>
+  <a onclick="show('admin')"     id="nav-admin"     style="display:none">Admin</a>
+  <div class="right">
+    <small id="user-info"></small>
+    <button onclick="logout()">Logg ut</button>
+  </div>
+</nav>
+
+<!-- HJEM -->
+<div class="page active" id="page-hjem">
+  <div class="stats">
+    <div class="stat"><div class="n" id="s-b">0</div><div class="l">Bedrifter</div></div>
+    <div class="stat"><div class="n" id="s-t">0</div><div class="l">Tjenester</div></div>
+    <div class="stat"><div class="n" id="s-k">0</div><div class="l">Kontakter</div></div>
+  </div>
+  <table>
+    <thead><tr><th>Bedrift</th><th>Org.nr</th><th>Poststed</th><th>Aktive tjenester</th></tr></thead>
+    <tbody id="hjem-tb"></tbody>
+  </table>
+</div>
+
+<!-- BEDRIFTER -->
+<div class="page" id="page-bedrifter">
+  <div class="toolbar">
+    <h2 id="bedrift-title">Bedrifter</h2>
+    <button class="dark" id="ny-bedrift-btn" onclick="openModal('bedrift')" style="display:none">+ Ny</button>
+  </div>
+  <table>
+    <thead><tr><th>Navn</th><th>Org.nr</th><th>Poststed</th><th>Tjenester</th><th>Handlinger</th></tr></thead>
+    <tbody id="bedrift-tb"></tbody>
+  </table>
+</div>
+
+<!-- TJENESTER -->
+<div class="page" id="page-tjenester">
+  <div class="toolbar">
+    <h2>Tjenester</h2>
+    <button class="dark" id="ny-tjeneste-btn" onclick="openModal('tjeneste')" style="display:none">+ Ny</button>
+  </div>
+  <div class="note" id="tjeneste-note" style="display:none">
+    Dette er tjenestene din bedrift abonnerer på.
+  </div>
+  <table>
+    <thead><tr><th>Navn</th><th>Beskrivelse</th><th>Pris/mnd</th><th id="tjeneste-kunder-col">Kunder</th><th id="tjeneste-handling-col" style="display:none">Handlinger</th></tr></thead>
+    <tbody id="tjeneste-tb"></tbody>
+  </table>
+</div>
+
+<!-- KONTAKTER -->
+<div class="page" id="page-kontakter">
+  <div class="toolbar">
+    <h2 id="kontakt-title">Kontaktpersoner</h2>
+    <button class="dark" onclick="openModal('kontakt')">+ Ny</button>
+  </div>
+  <div class="note" id="kontakt-note" style="display:none">
+    Her kan du se og endre kontaktpersoner tilknyttet din bedrift.
+  </div>
+  <table>
+    <thead><tr><th>Navn</th><th id="kontakt-bedrift-col">Bedrift</th><th>Stilling</th><th>E-post</th><th>Telefon</th><th>Handlinger</th></tr></thead>
+    <tbody id="kontakt-tb"></tbody>
+  </table>
+</div>
+
+
+<!-- MINE TJENESTER (kun kunder) -->
+<div class="page" id="page-mine-tjenester">
+  <div class="toolbar">
+    <h2>Mine tjenester</h2>
+    <button class="dark" onclick="openKjopModal()">+ Kjøp tjeneste</button>
+  </div>
+  <table>
+    <thead><tr><th>Tjeneste</th><th>Beskrivelse</th><th>Pris/mnd</th><th>Status</th><th>Startdato</th><th>Handlinger</th></tr></thead>
+    <tbody id="mine-tj-tb"></tbody>
+  </table>
+</div>
+
+<!-- ADMIN -->
+<div class="page" id="page-admin">
+  <h2 style="margin-bottom:12px">Brukere</h2>
+  <table>
+    <thead><tr><th>Brukernavn</th><th>Rolle</th><th>Bedrift</th></tr></thead>
+    <tbody id="admin-tb"></tbody>
+  </table>
+</div>
+
+<!-- MODAL -->
+<div class="modal-bg" id="modal-bg">
+  <div class="modal" id="modal"></div>
+</div>
+
+<script>
+let me = null;
+let D = { bedrifter: [], tjenester: [], kontakter: [], koblinger: [] };
+
+async function init() {
+  me = await fetch('/api/me').then(r => r.json());
+  document.getElementById('user-info').textContent = me.username + ' (' + me.role + ')';
+
+  if (me.role === 'admin') {
+    document.getElementById('nav-admin').style.display = '';
+    document.getElementById('ny-bedrift-btn').style.display = '';
+    document.getElementById('ny-tjeneste-btn').style.display = '';
+    document.getElementById('tjeneste-handling-col').style.display = '';
+  }
+  if (me.role === 'ansatt') {
+    document.getElementById('ny-bedrift-btn').style.display = '';
+  }
+  if (me.role === 'kunde') {
+    document.getElementById('nav-mine-tjenester').style.display = '';
+    document.getElementById('tjeneste-note').style.display = '';
+    document.getElementById('tjeneste-kunder-col').style.display = 'none';
+    document.getElementById('kontakt-note').style.display = '';
+    document.getElementById('kontakt-bedrift-col').style.display = 'none';
+    document.getElementById('kontakt-title').textContent = 'Kontaktpersoner i din bedrift';
+    document.getElementById('bedrift-title').textContent = 'Din bedrift';
+  }
+
+  await load();
+  renderHjem();
+}
+
+async function load() {
+  const [b, t, k, ko] = await Promise.all([
+    fetch('/api/bedrifter').then(r => r.json()),
+    fetch('/api/tjenester').then(r => r.json()),
+    fetch('/api/kontakter').then(r => r.json()),
+    fetch('/api/koblinger').then(r => r.json()),
+  ]);
+  D = { bedrifter: b, tjenester: t, kontakter: k, koblinger: ko };
+}
+
+async function logout() {
+  await fetch('/api/logout', { method: 'POST' });
+  location.href = '/login.html';
+}
+
+function show(p) {
+  document.querySelectorAll('.page').forEach(x => x.classList.remove('active'));
+  document.querySelectorAll('nav a').forEach(x => x.classList.remove('active'));
+  document.getElementById('page-' + p).classList.add('active');
+  document.getElementById('nav-' + p).classList.add('active');
+  if (p === 'hjem')      renderHjem();
+  if (p === 'bedrifter') renderBedrifter();
+  if (p === 'tjenester') renderTjenester();
+  if (p === 'kontakter') renderKontakter();
+  if (p === 'admin')     renderAdmin();
+  if (p === 'mine-tjenester') renderMineTjenester();
+}
+
+function tjFor(bid) {
+  return D.koblinger
+    .filter(k => k.bedriftId === bid)
+    .map(k => D.tjenester.find(t => t.id === k.tjenesteId))
+    .filter(Boolean);
+}
+function bFor(tid) {
+  return D.koblinger
+    .filter(k => k.tjenesteId === tid)
+    .map(k => D.bedrifter.find(b => b.id === k.bedriftId))
+    .filter(Boolean);
+}
+function chips(arr) { return arr.map(x => `<span class="chip">${x.navn}</span>`).join('') || '–'; }
+function kr(n) { return 'kr ' + Number(n).toLocaleString('nb-NO') + ',-'; }
+
+function renderHjem() {
+  document.getElementById('s-b').textContent = D.bedrifter.length;
+  document.getElementById('s-t').textContent = D.tjenester.length;
+  document.getElementById('s-k').textContent = D.kontakter.length;
+  document.getElementById('hjem-tb').innerHTML = D.bedrifter.map(b =>
+    `<tr><td>${b.navn}</td><td>${b.orgnr}</td><td>${b.poststed || '–'}</td><td>${chips(tjFor(b.id))}</td></tr>`
+  ).join('');
+}
+
+function renderBedrifter() {
+  const isAdmin = me.role === 'admin';
+  const isKunde = me.role === 'kunde';
+  document.getElementById('bedrift-tb').innerHTML = D.bedrifter.map(b => `
+    <tr>
+      <td>${b.navn}</td><td>${b.orgnr}</td><td>${b.poststed || '–'}</td>
+      <td>${chips(tjFor(b.id))}</td>
+      <td>
+        <button class="sm" onclick="editBedrift(${b.id})">Rediger</button>
+        ${isAdmin ? `<button class="sm" onclick="delBedrift(${b.id})">Slett</button>` : ''}
+      </td>
+    </tr>`).join('');
+}
+
+function renderTjenester() {
+  const isAdmin = me.role === 'admin';
+  const isKunde = me.role === 'kunde';
+  document.getElementById('tjeneste-tb').innerHTML = D.tjenester.map(t => `
+    <tr>
+      <td>${t.navn}</td><td>${t.beskrivelse || '–'}</td><td>${kr(t.pris)}</td>
+      ${!isKunde ? `<td>${chips(bFor(t.id))}</td>` : ''}
+      ${isAdmin ? `<td>
+        <button class="sm" onclick="editTjeneste(${t.id})">Rediger</button>
+        <button class="sm" onclick="delTjeneste(${t.id})">Slett</button>
+      </td>` : ''}
+    </tr>`).join('');
+}
+
+function renderKontakter() {
+  const isAdmin = me.role === 'admin';
+  const isKunde = me.role === 'kunde';
+  document.getElementById('kontakt-tb').innerHTML = D.kontakter.map(k => {
+    const b = D.bedrifter.find(b => b.id === k.bedriftId);
+    return `<tr>
+      <td>${k.fornavn} ${k.etternavn}</td>
+      ${!isKunde ? `<td>${b?.navn || '–'}</td>` : ''}
+      <td>${k.stilling || '–'}</td>
+      <td>${k.epost || '–'}</td>
+      <td>${k.telefon || '–'}</td>
+      <td>
+        <button class="sm" onclick="editKontakt(${k.id})">Rediger</button>
+        ${isAdmin ? `<button class="sm" onclick="delKontakt(${k.id})">Slett</button>` : ''}
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+async function renderAdmin() {
+  const users = await fetch('/api/admin/users').then(r => r.json());
+  document.getElementById('admin-tb').innerHTML = users.map(u => {
+    const b = D.bedrifter.find(b => b.id === u.bedrift_id);
+    return `<tr><td>${u.username}</td><td>${u.role}</td><td>${b?.navn || '–'}</td></tr>`;
+  }).join('');
+}
+
+// --- Modal ---
+function openModal(type, data = {}) {
+  const m = document.getElementById('modal');
+  const isKunde = me.role === 'kunde';
+
+  const bOpts = D.bedrifter.map(b =>
+    `<option value="${b.id}" ${b.id === (data.bedriftId || me.bedriftId) ? 'selected' : ''}>${b.navn}</option>`
+  ).join('');
+
+  const tjChecks = D.tjenester.map(t => {
+    const on = data.id ? D.koblinger.some(k => k.bedriftId === data.id && k.tjenesteId === t.id) : false;
+    return `<label style="display:flex;gap:6px;align-items:center;font-size:.82rem;margin-top:6px">
+      <input type="checkbox" name="tj" value="${t.id}" ${on ? 'checked' : ''} style="width:auto">
+      ${t.navn} (${kr(t.pris)})</label>`;
+  }).join('');
+
+  if (type === 'bedrift') {
+    // Kunde kan kun endre adresse – ikke orgnr eller tjenestekoblinger
+    m.innerHTML = `<h3>${data.id ? 'Rediger' : 'Ny'} bedrift</h3>
+      <label>Navn</label><input id="f1" value="${data.navn || ''}" ${isKunde ? '' : ''}>
+      <label>Org.nr</label><input id="f2" value="${data.orgnr || ''}" ${isKunde ? 'readonly style="background:#f5f5f5"' : ''}>
+      <label>Adresse</label><input id="f3" value="${data.adresse || ''}">
+      <label>Postnummer</label><input id="f4" value="${data.postnummer || ''}">
+      <label>Poststed</label><input id="f5" value="${data.poststed || ''}">
+      ${!isKunde ? `<label>Tjenester</label>${tjChecks}` : ''}
+      <div class="modal-actions">
+        <button onclick="closeModal()">Avbryt</button>
+        <button class="dark" onclick="saveBedrift(${data.id || 0})">Lagre</button>
+      </div>`;
+
+  } else if (type === 'tjeneste') {
+    m.innerHTML = `<h3>${data.id ? 'Rediger' : 'Ny'} tjeneste</h3>
+      <label>Navn</label><input id="f1" value="${data.navn || ''}">
+      <label>Beskrivelse</label><input id="f2" value="${data.beskrivelse || ''}">
+      <label>Pris/mnd (kr)</label><input id="f3" type="number" value="${data.pris || ''}">
+      <div class="modal-actions">
+        <button onclick="closeModal()">Avbryt</button>
+        <button class="dark" onclick="saveTjeneste(${data.id || 0})">Lagre</button>
+      </div>`;
+
+  } else if (type === 'kontakt') {
+    m.innerHTML = `<h3>${data.id ? 'Rediger' : 'Ny'} kontakt</h3>
+      ${!isKunde ? `<label>Bedrift</label><select id="f0">${bOpts}</select>` : ''}
+      <label>Fornavn</label><input id="f1" value="${data.fornavn || ''}">
+      <label>Etternavn</label><input id="f2" value="${data.etternavn || ''}">
+      <label>Stilling</label><input id="f3" value="${data.stilling || ''}">
+      <label>E-post</label><input id="f4" value="${data.epost || ''}">
+      <label>Telefon</label><input id="f5" value="${data.telefon || ''}">
+      <div class="modal-actions">
+        <button onclick="closeModal()">Avbryt</button>
+        <button class="dark" onclick="saveKontakt(${data.id || 0})">Lagre</button>
+      </div>`;
+  }
+
+  document.getElementById('modal-bg').classList.add('open');
+}
+
+function closeModal() { document.getElementById('modal-bg').classList.remove('open'); }
+document.getElementById('modal-bg').addEventListener('click', e => {
+  if (e.target === e.currentTarget) closeModal();
+});
+
+function g(id) { const el = document.getElementById(id); return el ? el.value.trim() : ''; }
+function checkedTj() {
+  return [...document.querySelectorAll('input[name="tj"]:checked')].map(x => parseInt(x.value));
+}
+async function api(url, method, body) {
+  return fetch(url, { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+}
+
+async function saveBedrift(id) {
+  if (!g('f1')) return alert('Navn er påkrevd');
+  const body = { navn: g('f1'), orgnr: g('f2'), adresse: g('f3'), postnummer: g('f4'), poststed: g('f5'), tjenesteIds: checkedTj() };
+  await api(id ? `/api/bedrifter/${id}` : '/api/bedrifter', id ? 'PUT' : 'POST', body);
+  closeModal(); await load(); renderBedrifter();
+}
+function editBedrift(id) { openModal('bedrift', D.bedrifter.find(b => b.id === id)); }
+async function delBedrift(id) {
+  if (!confirm('Slette bedrift?')) return;
+  await api(`/api/bedrifter/${id}`, 'DELETE');
+  await load(); renderBedrifter();
+}
+
+async function saveTjeneste(id) {
+  if (!g('f1') || !g('f3')) return alert('Navn og pris er påkrevd');
+  await api(id ? `/api/tjenester/${id}` : '/api/tjenester', id ? 'PUT' : 'POST',
+    { navn: g('f1'), beskrivelse: g('f2'), pris: parseFloat(g('f3')) });
+  closeModal(); await load(); renderTjenester();
+}
+function editTjeneste(id) { openModal('tjeneste', D.tjenester.find(t => t.id === id)); }
+async function delTjeneste(id) {
+  if (!confirm('Slette tjeneste?')) return;
+  await api(`/api/tjenester/${id}`, 'DELETE');
+  await load(); renderTjenester();
+}
+
+async function saveKontakt(id) {
+  if (!g('f1') || !g('f2')) return alert('Navn er påkrevd');
+  const bedriftId = me.role === 'kunde' ? me.bedriftId : parseInt(g('f0'));
+  await api(id ? `/api/kontakter/${id}` : '/api/kontakter', id ? 'PUT' : 'POST',
+    { bedriftId, fornavn: g('f1'), etternavn: g('f2'), stilling: g('f3'), epost: g('f4'), telefon: g('f5') });
+  closeModal(); await load(); renderKontakter();
+}
+function editKontakt(id) { openModal('kontakt', D.kontakter.find(k => k.id === id)); }
+async function delKontakt(id) {
+  if (!confirm('Slette kontakt?')) return;
+  await api(`/api/kontakter/${id}`, 'DELETE');
+  await load(); renderKontakter();
+}
+
+
+async function renderMineTjenester() {
+  // Fetch all available tjenester for kjøp-modal
+  const alle = await fetch('/api/tjenester/alle').then(r => r.json());
+  window._alleTjenester = alle;
+
+  // Current subscriptions (from D.tjenester which is already filtered for kunde)
+  const aktive = D.tjenester.filter(t => t.aktiv);
+  const inaktive = D.tjenester.filter(t => !t.aktiv);
+  const rows = [...aktive, ...inaktive];
+
+  document.getElementById('mine-tj-tb').innerHTML = rows.map(t => {
+    const statusLabel = t.aktiv
+      ? '<span style="color:#2a7a2a;font-weight:600">Aktiv</span>'
+      : '<span style="color:#999">Avsluttet</span>';
+    const btn = t.aktiv
+      ? `<button class="sm" onclick="avbrytTjeneste(${t.id})" style="color:#c00">Avbryt</button>`
+      : `<button class="sm dark" onclick="kjopTjeneste(${t.id})">Reaktiver</button>`;
+    const dato = t.startdato ? new Date(t.startdato).toLocaleDateString('nb-NO') : '–';
+    return `<tr>
+      <td>${t.navn}</td>
+      <td>${t.beskrivelse || '–'}</td>
+      <td>${kr(t.pris)}</td>
+      <td>${statusLabel}</td>
+      <td>${dato}</td>
+      <td>${btn}</td>
+    </tr>`;
+  }).join('') || '<tr><td colspan="6" style="color:#888;text-align:center">Ingen tjenester</td></tr>';
+}
+
+function openKjopModal() {
+  const alle = window._alleTjenester || [];
+  const aktivIds = D.tjenester.filter(t => t.aktiv).map(t => t.id);
+  const tilgjengelige = alle.filter(t => !aktivIds.includes(t.id));
+
+  if (!tilgjengelige.length) {
+    alert('Du har allerede alle tilgjengelige tjenester aktive.');
+    return;
+  }
+
+  const m = document.getElementById('modal');
+  const opts = tilgjengelige.map(t =>
+    `<option value="${t.id}">${t.navn} – ${kr(t.pris)}/mnd</option>`
+  ).join('');
+
+  m.innerHTML = `<h3>Kjøp tjeneste</h3>
+    <label>Velg tjeneste</label>
+    <select id="f-tj">${opts}</select>
+    <p style="font-size:.8rem;color:#666;margin-top:10px">Tjenesten aktiveres umiddelbart.</p>
+    <div class="modal-actions">
+      <button onclick="closeModal()">Avbryt</button>
+      <button class="dark" onclick="bekreftKjop()">Kjøp</button>
+    </div>`;
+  document.getElementById('modal-bg').classList.add('open');
+}
+
+async function bekreftKjop() {
+  const tjenesteId = parseInt(document.getElementById('f-tj').value);
+  const res = await api('/api/abonnement/kjop', 'POST', { tjenesteId });
+  if (res.ok) {
+    closeModal();
+    await load();
+    renderMineTjenester();
+  } else {
+    const err = await res.json();
+    alert(err.error || 'Noe gikk galt');
+  }
+}
+
+async function kjopTjeneste(tjenesteId) {
+  await api('/api/abonnement/kjop', 'POST', { tjenesteId });
+  await load();
+  renderMineTjenester();
+}
+
+async function avbrytTjeneste(tjenesteId) {
+  if (!confirm('Er du sikker på at du vil avbryte denne tjenesten?')) return;
+  await api('/api/abonnement/avbryt', 'POST', { tjenesteId });
+  await load();
+  renderMineTjenester();
+}
+
+init();
+</script>
+</body>
+</html>
